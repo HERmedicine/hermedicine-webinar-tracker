@@ -246,7 +246,7 @@
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZQSv8R_vQueIFNAImT92B8lw2GPU1TxCCj5xg5X3uxvOD3Xb52NUyAbZTNRO0Mg/pub?gid=791815710&single=true&output=csv';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLK-s2tI7HOqP3g123cuuUpMU-H-h2YAVxzUH1HBmADpbKE44geTF9WnAaQadxjA/pub?gid=1117734688&single=true&output=csv';
 
 const TRACK_COLORS = {
   'MNDG':                        '#2A9D8F',
@@ -272,14 +272,21 @@ let activeWindow = '90';
 
 // ── CSV PARSE (no libs needed) ────────────────────────────
 function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  const headers = splitCSVLine(lines[0]);
-  return lines.slice(1).map(line => {
+  const lines = text.trim().split("\n");
+  // Sheet has 2 banner rows before real headers — find the row with "Webinar Date"
+  let headerIdx = 0;
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
+    if (lines[i].includes("Webinar Date") || lines[i].includes("Talk Title")) {
+      headerIdx = i; break;
+    }
+  }
+  const headers = splitCSVLine(lines[headerIdx]);
+  return lines.slice(headerIdx + 1).map(line => {
     const vals = splitCSVLine(line);
     const obj = {};
-    headers.forEach((h, i) => obj[h.trim()] = (vals[i] || '').trim());
+    headers.forEach((h, i) => obj[h.trim().replace(/\n/g, " ")] = (vals[i] || "").trim());
     return obj;
-  });
+  }).filter(row => Object.values(row).some(v => v !== ""));
 }
 
 function splitCSVLine(line) {
