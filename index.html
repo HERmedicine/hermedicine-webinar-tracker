@@ -246,7 +246,7 @@
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQsTbyiR6vgOMcehBpTRKnZ0MPyAciurH64EKEUja3BVOl4jWLCH2hwZZkC7kBu9g/pub?gid=538336945&single=true&output=csv';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQsTbyiR6vgOMcehBpTRKnZ0MPyAciurH64EKEUja3BVOl4jWLCH2hwZZkC7kBu9g/pub?gid=1526386415&single=true&output=csv';
 
 const TRACK_COLORS = {
   'MNDG':                        '#2A9D8F',
@@ -514,7 +514,7 @@ async function loadData() {
 
     allTalks = rows
       .filter(r => {
-        const cat = (r['Category'] || '').trim().toUpperCase();
+        const cat = (r['Track'] || r['Category'] || '').trim().toUpperCase();
         const spk = (r['Speaker'] || '').trim().toUpperCase();
         return cat !== 'NO TALK' && spk !== 'NO TALK' && spk !== '';
       })
@@ -525,7 +525,7 @@ async function loadData() {
         return {
           date: d,
           days,
-          rawTrack: r['Category'] || r['Track'] || '',
+          rawTrack: r['Track'] || r['Category'] || '',
           title: r['Talk Title'] || '',
           speaker: r['Speaker(s)'] || r['Speaker'] || '',
           email: (r['Email'] || r['Email '] || '').replace(/^[^<]*<([^>]+)>.*$/, '$1').trim(),
