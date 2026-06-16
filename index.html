@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HERmedicine Webinar Action Dashboard</title>
+<style>
+  :root {
+    --navy: #1a365d;
+    --pink: #c83665;
+    --teal: #2A9D8F;
+    --purple: #7f6d8b;
+    --onco-blue: #abc7ca;
+    --coral: #E76F51;
+    --orange: #F4A261;
+    --red-dark: #C62828;
+    --urgent-bg: #fff0f3;
+    --urgent-border: #c83665;
+    --soon-bg: #fff8e1;
+    --soon-border: #f9a825;
+    --upcoming-bg: #f1f8e9;
+    --upcoming-border: #7cb342;
+    --future-bg: #f5f5f5;
+    --future-border: #9e9e9e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #222; }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--navy);
+    color: white;
+    padding: 18px 28px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .header-left h1 { font-size: 1.25rem; font-weight: 700; }
+  .header-left p { font-size: 0.78rem; color: #90b4d8; margin-top: 3px; }
+  .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: #1e4976; border-radius: 20px;
+    padding: 5px 12px; font-size: 0.75rem; color: #90E0D8;
+  }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #4CAF50; animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .refresh-btn {
+    background: var(--pink); color: white; border: none;
+    border-radius: 20px; padding: 5px 14px; font-size: 0.75rem;
+    cursor: pointer; font-weight: 600; transition: background 0.15s;
+  }
+  .refresh-btn:hover { background: #a02a52; }
+  .today-badge {
+    background: var(--teal); color: white;
+    padding: 5px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+  }
+
+  /* ── LOADING / ERROR ── */
+  .loading-screen {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 80px 20px; color: #888;
+  }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid #ddd;
+    border-top-color: var(--pink); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-box {
+    margin: 32px; padding: 20px 24px;
+    background: #fff3f5; border: 1px solid #f5c6cb; border-radius: 8px;
+    color: #721c24; font-size: 0.85rem; line-height: 1.6;
+  }
+
+  /* ── FILTERS ── */
+  .controls {
+    background: white; border-bottom: 1px solid #e8e8e8;
+    padding: 10px 28px; display: flex; gap: 8px;
+    align-items: center; flex-wrap: wrap;
+  }
+  .filter-label { font-size: 0.72rem; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .filter-btn {
+    padding: 4px 13px; border-radius: 20px; border: 1.5px solid #ddd;
+    background: white; font-size: 0.75rem; cursor: pointer;
+    transition: all 0.15s; color: #444;
+  }
+  .filter-btn:hover { border-color: var(--pink); color: var(--pink); }
+  .filter-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .divider { width: 1px; height: 20px; background: #ddd; margin: 0 4px; }
+
+  /* ── MAIN ── */
+  .main { padding: 20px 28px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── STATS ── */
+  .stats-bar {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px; margin-bottom: 22px;
+  }
+  .stat-card {
+    background: white; border-radius: 8px; padding: 12px 14px;
+    text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+  .stat-number { font-size: 1.5rem; font-weight: 800; color: var(--navy); }
+  .stat-number.alert { color: var(--pink); }
+  .stat-label { font-size: 0.68rem; color: #888; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  /* ── LEGEND ── */
+  .legend {
+    background: white; border-radius: 8px; padding: 10px 16px;
+    display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 22px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); align-items: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.73rem; color: #555; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── SECTION ── */
+  .section-label {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #777; margin: 0 0 8px 2px;
+  }
+  .section-label.urgent { color: var(--pink); }
+  .section-label.soon { color: #e65100; }
+
+  /* ── CARDS ── */
+  .cards-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+  .card {
+    background: white; border-radius: 10px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    border-left: 4px solid var(--teal); transition: box-shadow 0.15s;
+  }
+  .card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
+  .card.urgent { border-left-color: var(--urgent-border); background: var(--urgent-bg); }
+  .card.soon   { border-left-color: var(--soon-border);   background: var(--soon-bg); }
+  .card.upcoming { border-left-color: var(--upcoming-border); background: var(--upcoming-bg); }
+  .card.future { border-left-color: var(--future-border); }
+
+  .card-header {
+    padding: 11px 13px 8px;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+  }
+  .date-main { font-size: 0.9rem; font-weight: 700; color: var(--navy); }
+  .date-day  { font-size: 0.68rem; color: #999; margin-top: 1px; }
+
+  .days-badge {
+    font-size: 0.67rem; font-weight: 700; padding: 3px 8px;
+    border-radius: 10px; white-space: nowrap; flex-shrink: 0;
+  }
+  .days-badge.urgent   { background: #ffd6df; color: var(--red-dark); }
+  .days-badge.soon     { background: #ffe0b2; color: #e65100; }
+  .days-badge.upcoming { background: #dcedc8; color: #33691e; }
+  .days-badge.future   { background: #eee; color: #555; }
+
+  .card-body { padding: 0 13px 10px; }
+
+  .track-badge {
+    display: inline-block; font-size: 0.62rem; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px; color: white;
+    text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 5px;
+  }
+  .talk-title {
+    font-size: 0.8rem; font-weight: 600; color: #222;
+    line-height: 1.35; margin-bottom: 6px;
+  }
+  .speaker-row { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+  .speaker-name { font-size: 0.76rem; color: #333; font-weight: 600; }
+  .email-row { font-size: 0.71rem; color: var(--teal); margin-bottom: 5px; }
+  .email-row a { color: var(--teal); text-decoration: none; }
+  .email-row a:hover { text-decoration: underline; }
+
+  .status-pill {
+    display: inline-block; font-size: 0.6rem; font-weight: 700;
+    padding: 2px 7px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .pill-confirmed  { background: #e0f4f2; color: var(--teal); }
+  .pill-awaiting   { background: #fff3cd; color: #856404; }
+  .pill-cancelled  { background: #f8d7da; color: #721c24; }
+  .pill-complete   { background: #d4edda; color: #155724; }
+
+  .mailto-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.68rem; font-weight: 600; color: white;
+    background: var(--pink); border: none; border-radius: 5px;
+    padding: 4px 10px; cursor: pointer; text-decoration: none; margin-top: 6px;
+  }
+  .mailto-btn:hover { background: #a02a52; }
+
+  .card-footer {
+    padding: 7px 13px; background: rgba(0,0,0,0.03);
+    border-top: 1px solid rgba(0,0,0,0.05);
+  }
+  .action-text { font-size: 0.71rem; font-weight: 600; line-height: 1.3; }
+  .action-text.urgent   { color: var(--red-dark); }
+  .action-text.soon     { color: #e65100; }
+  .action-text.upcoming { color: #33691e; }
+  .action-text.future   { color: #555; }
+
+  .last-updated { font-size: 0.7rem; color: #aaa; text-align: right; padding: 8px 28px 16px; }
+  .no-talks { text-align: center; padding: 30px; color: #aaa; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>HERmedicine Webinar Action Dashboard</h1>
+    <p>Live from Google Sheets · Monday &amp; Friday Series · Upcoming speaker actions</p>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div>Live data</div>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+    <div class="today-badge" id="todayBadge"></div>
+  </div>
+</div>
+
+<div class="controls">
+  <span class="filter-label">Track:</span>
+  <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn" onclick="setFilter('MNDG',this)">MNDG</button>
+  <button class="filter-btn" onclick="setFilter('HERtalks',this)">HERtalks</button>
+  <button class="filter-btn" onclick="setFilter('OncoMeno',this)">OncoMeno</button>
+  <button class="filter-btn" onclick="setFilter('survivHERS',this)">survivHERS</button>
+  <button class="filter-btn" onclick="setFilter('Great Debates',this)">Great Debates</button>
+  <div class="divider"></div>
+  <span class="filter-label">Show:</span>
+  <button class="filter-btn active" onclick="setWindow('90',this)" id="win90">Next 90 days</button>
+  <button class="filter-btn" onclick="setWindow('all',this)" id="winAll">Full year</button>
+</div>
+
+<div id="appRoot">
+  <div class="loading-screen">
+    <div class="spinner"></div>
+    <div>Loading from Google Sheets…</div>
+  </div>
+</div>
+
+<div class="last-updated" id="lastUpdated"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQsTbyiR6vgOMcehBpTRKnZ0MPyAciurH64EKEUja3BVOl4jWLCH2hwZZkC7kBu9g/pub?gid=538336945&single=true&output=csv';
+
+const TRACK_COLORS = {
+  'MNDG':                        '#2A9D8F',
+  'MNDG ':                       '#2A9D8F',
+  'HERtalks':                    '#c83665',
+  'HERtalks ':                   '#c83665',
+  'HERtalks- PANEL':             '#c83665',
+  'OncoMeno Clinician':          '#7f6d8b',
+  'OncoMeno CLinician':          '#7f6d8b',
+  'WNDG OncoMeno Clinician':     '#7f6d8b',
+  'survivHERS':                  '#abc7ca',
+  'suvivHERS':                   '#abc7ca',
+  'WNDG':                        '#3A86FF',
+  'GREAT  DEBATES IMENOPAUSE #1':'#EF233C',
+  'GREAT DEBATES IN MENOPAUSE #':'#EF233C',
+  'Great Debates':               '#EF233C',
+};
+
+// ── STATE ─────────────────────────────────────────────────
+let allTalks = [];
+let activeTrack = 'all';
+let activeWindow = '90';
+
+// ── CSV PARSE (no libs needed) ────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = splitCSVLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = splitCSVLine(line);
+    const obj = {};
+    headers.forEach((h, i) => obj[h.trim()] = (vals[i] || '').trim());
+    return obj;
+  });
+}
+
+function splitCSVLine(line) {
+  const result = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuote = !inQuote; }
+    else if (ch === ',' && !inQuote) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ── DATE HELPERS ──────────────────────────────────────────
+function parseDate(val) {
+  if (!val) return null;
+  // Try MM/DD/YYYY
+  const m = val.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return new Date(+m[3], +m[1]-1, +m[2]);
+  // Try YYYY-MM-DD
+  const m2 = val.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
+  return null;
+}
+
+function daysFrom(d) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((d - today) / 86400000);
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function fmtDay(d) {
+  return d.toLocaleDateString('en-US', { weekday: 'long' });
+}
+
+// ── CLASSIFY ─────────────────────────────────────────────
+function urgency(days) {
+  if (days <= 7)  return 'urgent';
+  if (days <= 14) return 'soon';
+  if (days <= 42) return 'upcoming';
+  return 'future';
+}
+
+function normalizeStatus(raw) {
+  if (!raw) return 'Confirmed';
+  const v = raw.toUpperCase();
+  if (v.includes('NOT CONFIRMED') || v.includes('AWAITING')) return 'Awaiting Response';
+  if (v.includes('CXL') || v.includes('CANCEL')) return 'Cancelled';
+  if (v.includes('COMPLETE')) return 'Complete';
+  return 'Confirmed';
+}
+
+function normalizeTrack(raw) {
+  if (!raw) return '';
+  const v = raw.trim();
+  if (v.toUpperCase().includes('GREAT') || v.toUpperCase().includes('DEBATE')) return 'Great Debates';
+  if (v.toUpperCase().includes('SURVIV')) return 'survivHERS';
+  if (v.toUpperCase().includes('ONCOMENO') || v.toUpperCase().includes('WNDG ONCO')) return 'OncoMeno Clinician';
+  return v;
+}
+
+function trackColor(raw) {
+  for (const [key, val] of Object.entries(TRACK_COLORS)) {
+    if (raw === key) return val;
+  }
+  // fuzzy
+  const u = raw.toUpperCase();
+  if (u.includes('MNDG')) return '#2A9D8F';
+  if (u.includes('HERTALKS') || u.includes('HER TALKS')) return '#c83665';
+  if (u.includes('ONCOMENO') || u.includes('WNDG')) return '#7f6d8b';
+  if (u.includes('SURVIV')) return '#abc7ca';
+  if (u.includes('GREAT') || u.includes('DEBATE')) return '#EF233C';
+  return '#888';
+}
+
+function trackLabel(raw) {
+  const n = normalizeTrack(raw);
+  const labels = {
+    'Great Debates': 'Great Debates',
+    'survivHERS': 'survivHERS',
+    'OncoMeno Clinician': 'OncoMeno',
+  };
+  return labels[n] || raw.trim().replace(' CLinician','').replace(' Clinician','');
+}
+
+function actionText(days, status) {
+  if (status === 'Awaiting Response') return '⚠️ Not confirmed — send invite NOW';
+  if (status === 'Cancelled') return 'Cancelled — no action needed';
+  if (days <= 7)  return '🔴 Send day-before reminder + confirm Zoom link';
+  if (days <= 14) return '🟠 Send slides/bio reminder (Template 2)';
+  if (days <= 28) return '🟡 Confirm Zoom sent; request bio & slides';
+  return '🟢 Send confirmation email + speaker packet (Template 1)';
+}
+
+// ── FILTER MATCH ─────────────────────────────────────────
+function matchesTrack(talk) {
+  if (activeTrack === 'all') return true;
+  const nt = normalizeTrack(talk.rawTrack).toUpperCase();
+  const filter = activeTrack.toUpperCase();
+  if (filter === 'GREAT DEBATES') return nt.includes('GREAT') || nt.includes('DEBATE');
+  if (filter === 'ONCOMENO') return nt.includes('ONCO') || nt.includes('WNDG ONCO');
+  if (filter === 'SURVIVHERS') return nt.includes('SURVIV');
+  return nt.includes(filter);
+}
+
+// ── RENDER ────────────────────────────────────────────────
+function render() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const windowDays = activeWindow === '90' ? 90 : 400;
+
+  const filtered = allTalks.filter(t =>
+    t.days >= 0 &&
+    t.days <= windowDays &&
+    t.status !== 'Cancelled' &&
+    matchesTrack(t)
+  );
+
+  const groups = { urgent:[], soon:[], upcoming:[], future:[] };
+  filtered.forEach(t => groups[urgency(t.days)].push(t));
+
+  const allFiltered = allTalks.filter(t => t.days >= 0 && matchesTrack(t));
+  const awaiting = allFiltered.filter(t => t.status === 'Awaiting Response');
+  const noEmail  = allFiltered.filter(t => !t.email);
+
+  // Stats
+  const statsHTML = [
+    [filtered.length,          'Showing',       false],
+    [groups.urgent.length,     'This Week',     groups.urgent.length > 0],
+    [groups.soon.length,       'Need Reminder', groups.soon.length > 0],
+    [groups.upcoming.length,   'Need Pkg Sent', false],
+    [awaiting.length,          'Need Confirm',  awaiting.length > 0],
+    [noEmail.length,           'No Email',      noEmail.length > 0],
+  ].map(([n, l, alert]) =>
+    `<div class="stat-card">
+      <div class="stat-number${alert?' alert':''}">${n}</div>
+      <div class="stat-label">${l}</div>
+    </div>`
+  ).join('');
+
+  // Cards
+  function makeCard(t) {
+    const urg = urgency(t.days);
+    const daysLabel = t.days === 0 ? 'TODAY' : t.days === 1 ? 'TOMORROW' : `${t.days}d away`;
+    const color = trackColor(t.rawTrack);
+    const label = trackLabel(t.rawTrack);
+    const subj = encodeURIComponent(`HERmedicine Webinar — ${fmtDate(t.date)}: ${t.title}`);
+    const body = encodeURIComponent(`Hi ${(t.speaker||'').split(' ')[0]},\n\nI'm reaching out regarding your upcoming HERmedicine webinar on ${fmtDate(t.date)}.\n\n`);
+    const mailtoHref = t.email ? `mailto:${t.email}?subject=${subj}&body=${body}` : '';
+    const pillClass = { 'Confirmed':'pill-confirmed','Awaiting Response':'pill-awaiting','Cancelled':'pill-cancelled','Complete':'pill-complete' }[t.status] || 'pill-confirmed';
+
+    return `<div class="card ${urg}">
+      <div class="card-header">
+        <div>
+          <div class="date-main">${fmtDate(t.date)}</div>
+          <div class="date-day">${fmtDay(t.date)}</div>
+          <div style="margin-top:5px"><span class="track-badge" style="background:${color}">${label}</span></div>
+        </div>
+        <span class="days-badge ${urg}">${daysLabel}</span>
+      </div>
+      <div class="card-body">
+        <div class="talk-title">${t.title || '(Title TBD)'}</div>
+        <div class="speaker-row">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span class="speaker-name">${t.speaker || 'TBD'}</span>
+        </div>
+        ${t.email
+          ? `<div class="email-row">
+               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2A9D8F" stroke-width="2" style="vertical-align:-1px;margin-right:3px"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+               <a href="mailto:${t.email}">${t.email}</a>
+             </div>`
+          : `<div class="email-row" style="color:#ccc">No email on file</div>`}
+        <span class="status-pill ${pillClass}">${t.status}</span>
+        ${mailtoHref ? `<br><a class="mailto-btn" href="${mailtoHref}">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+          Email Speaker</a>` : ''}
+      </div>
+      <div class="card-footer">
+        <div class="action-text ${urg}">${actionText(t.days, t.status)}</div>
+      </div>
+    </div>`;
+  }
+
+  function section(label, cssClass, items, id) {
+    if (items.length === 0) return '';
+    return `<div class="section-label ${cssClass}">${label} (${items.length})</div>
+            <div class="cards-grid">${items.map(makeCard).join('')}</div>`;
+  }
+
+  const html = statsHTML
+    ? `<div class="main">
+        <div class="legend">
+          <strong style="font-size:0.72rem;color:#555;text-transform:uppercase;letter-spacing:0.5px">Priority:</strong>
+          <div class="legend-item"><div class="legend-dot" style="background:#c83665"></div>0–7 days · day-before reminder</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f9a825"></div>8–14 days · slide reminder</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7cb342"></div>15–42 days · send confirmation pkg</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#9e9e9e"></div>43+ days · on the horizon</div>
+        </div>
+        <div class="stats-bar">${statsHTML}</div>
+        ${section('🔴 Action This Week — Day-Before Reminders (0–7 days)', 'urgent', groups.urgent)}
+        ${section('🟠 Send Slide Reminders (8–14 days)', 'soon', groups.soon)}
+        ${section('🟡 Send Confirmation Packages (15–42 days)', '', groups.upcoming)}
+        ${section('🔵 On the Horizon (43+ days)', '', groups.future)}
+        ${filtered.length === 0 ? '<div class="no-talks">No upcoming talks match this filter.</div>' : ''}
+      </div>`
+    : '';
+
+  document.getElementById('appRoot').innerHTML = html;
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────
+async function loadData() {
+  document.getElementById('appRoot').innerHTML = `
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <div>Fetching latest data from Google Sheets…</div>
+    </div>`;
+
+  try {
+    // Cache-bust so we always get fresh data
+    const url = CSV_URL + '&cachebust=' + Date.now();
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const rows = parseCSV(text);
+
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    allTalks = rows
+      .filter(r => {
+        const cat = (r['Category'] || '').trim().toUpperCase();
+        const spk = (r['Speaker'] || '').trim().toUpperCase();
+        return cat !== 'NO TALK' && spk !== 'NO TALK' && spk !== '';
+      })
+      .map(r => {
+        const d = parseDate(r['Webinar Date'] || r['Date'] || '');
+        if (!d) return null;
+        const days = daysFrom(d);
+        return {
+          date: d,
+          days,
+          rawTrack: r['Category'] || r['Track'] || '',
+          title: r['Talk Title'] || '',
+          speaker: r['Speaker(s)'] || r['Speaker'] || '',
+          email: (r['Email'] || r['Email '] || '').replace(/^[^<]*<([^>]+)>.*$/, '$1').trim(),
+          status: normalizeStatus(r['Status'] || r['Confirmed'] || ''),
+        };
+      })
+      .filter(t => t !== null)
+      .sort((a, b) => a.date - b.date);
+
+    document.getElementById('lastUpdated').textContent =
+      `Last refreshed: ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} · Data from Google Sheets`;
+
+    render();
+  } catch (err) {
+    document.getElementById('appRoot').innerHTML = `
+      <div class="error-box">
+        <strong>Could not load data from Google Sheets.</strong><br><br>
+        This usually means the sheet isn't published yet, or there's a network issue.<br><br>
+        <strong>To fix:</strong> In your Google Sheet → File → Share → Publish to web → choose the Master Tracker tab → CSV → Publish.<br><br>
+        <em>Error: ${err.message}</em>
+      </div>`;
+  }
+}
+
+// ── CONTROLS ─────────────────────────────────────────────
+function setFilter(track, btn) {
+  activeTrack = track;
+  document.querySelectorAll('.controls .filter-btn').forEach(b => {
+    if (['all','MNDG','HERtalks','OncoMeno','survivHERS','Great Debates'].includes(b.textContent.trim()) ||
+        b.textContent.trim() === 'All') b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  render();
+}
+
+function setWindow(w, btn) {
+  activeWindow = w;
+  document.querySelectorAll('.controls .filter-btn').forEach(b => {
+    if (b.textContent.includes('days') || b.textContent.includes('year')) b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  render();
+}
+
+// ── INIT ─────────────────────────────────────────────────
+document.getElementById('todayBadge').textContent =
+  new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+loadData();
+
+// Auto-refresh every 5 minutes
+setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
